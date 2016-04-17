@@ -7,18 +7,8 @@
     android:paddingLeft="@dimen/activity_horizontal_margin"
     android:paddingRight="@dimen/activity_horizontal_margin"
     android:paddingTop="@dimen/activity_vertical_margin"
-    tools:context="regan.hackru.tagger.AddTagActivity">
-
-
-    <TextView
-        android:id="@+id/textView"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentLeft="true"
-        android:layout_alignParentStart="true"
-        android:layout_alignParentTop="true"
-        android:text="Add a new tag"
-        android:textAppearance="?android:attr/textAppearanceLarge" />
+    tools:context="regan.hackru.tagger.AddTagActivity"
+    android:padding="0dp">
 
 
     <!--<android.support.v4.widget.DrawerLayout-->
@@ -41,13 +31,12 @@
     <!--</android.support.v4.widget.DrawerLayout>-->
 
     <Button
-        android:id="@+id/add_text"
+        android:id="@+id/text_tool"
         style="?android:attr/buttonStyleSmall"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentLeft="true"
         android:layout_alignParentStart="true"
-        android:layout_below="@+id/textView"
         android:text="Add Text" />
 
     <Button
@@ -55,8 +44,8 @@
         style="?android:attr/buttonStyleSmall"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_toRightOf="@+id/add_text"
-        android:layout_alignBaseline="@id/add_text"
+        android:layout_toRightOf="@+id/text_tool"
+        android:layout_alignBaseline="@id/text_tool"
         android:text="Take Photo" />
 
     <Button
@@ -65,14 +54,13 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_toRightOf="@+id/take_photo"
-        android:layout_alignBaseline="@id/add_text"
+        android:layout_alignBaseline="@id/text_tool"
         android:text="Draw Tool" />
 
-    <android.support.design.widget.FloatingActionButton
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
-        android:layout_alignParentEnd="true"
-        android:layout_alignParentRight="true" />
+    <regan.hackru.tagger.DrawView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:id="@+id/drawView" />
+
 
 </RelativeLayout>
