@@ -20,7 +20,7 @@ public class LocationMarshaller implements DynamoDBMarshaller<Location> {
         Location l = new Location("");
 
         String lat = loc[0].substring(1, loc[0].length()-1);
-        String lng = loc[1].substring(0, loc[1].length()-2);
+        String lng = loc[1].substring(1, loc[1].length()-2);
 
         l.setLatitude(Double.parseDouble(lat));
         l.setLongitude(Double.parseDouble(lng));

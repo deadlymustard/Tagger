@@ -10,6 +10,7 @@ import android.location.Location;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
+import android.os.Environment;
 import android.provider.MediaStore;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -23,8 +24,14 @@ import android.widget.TextView;
 
 import com.amazonaws.auth.CognitoCachingCredentialsProvider;
 import com.amazonaws.mobileconnectors.dynamodbv2.dynamodbmapper.DynamoDBMapper;
+import com.amazonaws.mobileconnectors.s3.transfermanager.TransferProgress;
+import com.amazonaws.mobileconnectors.s3.transferutility.TransferObserver;
+import com.amazonaws.mobileconnectors.s3.transferutility.TransferUtility;
+import com.amazonaws.regions.Region;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient;
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.AmazonS3Client;
 import com.google.android.gms.appindexing.Action;
 import com.google.android.gms.appindexing.AppIndex;
 import com.google.android.gms.common.ConnectionResult;
@@ -34,36 +41,51 @@ import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.common.api.GoogleApiClient.ConnectionCallbacks;
 import com.google.android.gms.common.api.GoogleApiClient.OnConnectionFailedListener;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.Date;
+import java.util.UUID;
+
 public class AddTagActivity extends AppCompatActivity implements ConnectionCallbacks, OnConnectionFailedListener {
 
+    //Buttons
     Button takePhoto;
     Button textTool;
     Button drawTool;
     Button submitButton;
 
-    DrawView draw;
+    //Screen for drawing
+    DrawView drawScreen;
 
-    boolean textToolActive = false;
-
+    //Google Location Services
     protected GoogleApiClient mGoogleApiClient;
     protected Location mLastLocation;
 
-    protected TextView mLatitudeText;
-    protected TextView mLongitudeText;
-
+    //Map objects to the database
     protected DynamoDBMapper mapper;
 
+    //Content storage
+    protected AmazonS3 s3;
+    protected  TransferUtility transferUtility;
+
+
+
+    //File path for content
+    File contentFile;
+
+
     private static final int REQUEST_IMAGE_CAPTURE = 1;
-    /**
-     * ATTENTION: This was auto-generated to implement the App Indexing API.
-     * See https://g.co/AppIndexing/AndroidStudio for more information.
-     */
-    private GoogleApiClient client;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_add_tag);
+
+        //Initialize the Draw Screen
+        drawScreen = (DrawView) findViewById(R.id.drawView);
 
         // Create an instance of GoogleAPIClient.
         if (mGoogleApiClient == null) {
@@ -78,36 +100,42 @@ public class AddTagActivity extends AppCompatActivity implements ConnectionCallb
 
         // Initialize the Amazon Cognito credentials provider
         CognitoCachingCredentialsProvider credentialsProvider = new CognitoCachingCredentialsProvider(
-                getApplicationContext(),
+                this.getApplicationContext(),
                 "us-east-1:72789533-4d1e-4bcc-ba0b-afa67707fcd2", // Identity Pool ID
                 Regions.US_EAST_1 // Region
         );
 
+        //Initialize the Amazon Dynamo Database and Content Delivery
         AmazonDynamoDBClient ddbClient = new AmazonDynamoDBClient(credentialsProvider);
-
-
+        s3 = new AmazonS3Client(credentialsProvider);
+        s3.setRegion(Region.getRegion(Regions.US_EAST_1));
+        s3.setEndpoint("s3.amazonaws.com");
+        transferUtility = new TransferUtility(s3, this.getApplicationContext());
         mapper = new DynamoDBMapper(ddbClient);
 
+
+        //Submit Button
         submitButton = (Button) findViewById(R.id.submit_button);
         submitButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 LocationTag tag = buildTag();
-
                 SaveTagParams params = new SaveTagParams(mapper, tag);
                 new SaveTagTask().execute(params, null, null);
             }
         });
 
+        //Text Tool
         textTool = (Button) findViewById(R.id.text_tool);
         textTool.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                textToolActive = true;
-                draw.disableDraw();
+                //Do nothing now
             }
         });
 
+
+        //Take Photo
         takePhoto = (Button) findViewById(R.id.take_photo);
         takePhoto.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -115,12 +143,6 @@ public class AddTagActivity extends AppCompatActivity implements ConnectionCallb
                 dispatchTakePictureIntent();
             }
         });
-
-        draw = (DrawView) findViewById(R.id.drawView);
-
-        // ATTENTION: This was auto-generated to implement the App Indexing API.
-        // See https://g.co/AppIndexing/AndroidStudio for more information.
-        client = new GoogleApiClient.Builder(this).addApi(AppIndex.API).build();
     }
 
     @Override
@@ -129,9 +151,29 @@ public class AddTagActivity extends AppCompatActivity implements ConnectionCallb
             Bundle extras = data.getExtras();
             Bitmap imageBitmap = (Bitmap) extras.get("data");
 
+
+            Date now = new Date();
+            android.text.format.DateFormat.format("yyyy-MM-dd_hh:mm:ss", now);
+            String mPath = Environment.getExternalStorageDirectory().toString() + "/" + now + ".jpg";
+
+
+            contentFile = new File(mPath);
+
+            FileOutputStream outputStream = null;
+            try {
+                outputStream = new FileOutputStream(contentFile);
+                imageBitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream);
+                outputStream.flush();
+                outputStream.close();
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
             Drawable d = new BitmapDrawable(getResources(), imageBitmap);
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
-                draw.setBackground(d);
+                drawScreen.setBackground(d);
             }
 
         }
@@ -149,6 +191,7 @@ public class AddTagActivity extends AppCompatActivity implements ConnectionCallb
         LocationTag tag = new LocationTag();
         tag.setAuthor("Admin");
         tag.setLocation(mLastLocation);
+        tag.setContentKey(UUID.randomUUID().toString());
 
         return tag;
 
@@ -252,6 +295,18 @@ public class AddTagActivity extends AppCompatActivity implements ConnectionCallb
             LocationTag t = params[0].getTag();
 
             mapper.save(t);
+
+            Log.e("File", contentFile.getAbsolutePath());
+
+
+
+            TransferObserver observer = transferUtility.upload(
+                    "tagger-content-tagimages",     /* The bucket to upload to */
+                    t.getContentKey(),    /* The key for the uploaded object */
+                    contentFile       /* The file where the data to upload exists */
+            );
+
+
 
             return null;
         }
