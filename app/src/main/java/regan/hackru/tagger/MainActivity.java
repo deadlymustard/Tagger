@@ -13,7 +13,10 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
+<<<<<<< HEAD
+=======
 import android.util.Pair;
+>>>>>>> refs/remotes/origin/master
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -52,6 +55,8 @@ public class MainActivity extends AppCompatActivity implements
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
+<<<<<<< HEAD
+=======
 
         // Create an instance of GoogleAPIClient.
         if (mGoogleApiClient == null) {
@@ -82,6 +87,7 @@ public class MainActivity extends AppCompatActivity implements
                         .setAction("Action", null).show();
             }
         });
+>>>>>>> refs/remotes/origin/master
     }
 
     @Override
