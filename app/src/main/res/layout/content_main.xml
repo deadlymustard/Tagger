@@ -29,7 +29,6 @@
         android:layout_alignParentRight="true"
         android:layout_alignParentEnd="true"
         android:layout_marginBottom="56dp"
-        android:text="Add tag"
-        android:onClick="addTag()"/>
+        android:text="Add tag" />
 
 </RelativeLayout>
